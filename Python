@@ -1,0 +1,63 @@
+Final below 
+from PIL import Image
+#import pytesseract
+import cv2
+import os, sys, inspect
+import numpy as np
+import serial
+
+arduino = serial.Serial('/dev/ttyACM0', 9600)
+
+def execution_path(filename):
+	return os.path.join(os.path.dirname(inspect.getfile(sys._getframe(1))), filename)    
+
+#Arduino code
+def send_command(command):
+	arduino.write(command.encode())
+
+def FollowlinePlease(frame):
+	# Convert frame to grayscale
+	gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+	# Normalize the image
+	img_normalized = cv2.normalize(gray_frame, None, 0, 255, cv2.NORM_MINMAX)
+	# Threshold the normalized image
+	img_threshold = cv2.threshold(img_normalized, 100, 255, cv2.THRESH_BINARY)[1]
+
+	# Use Canny edge detection on the thresholded image
+	edge = cv2.Canny(img_threshold, 100, 200)
+
+	if np.any(edge[:, :160]):
+    	send_command('1')  # Turn left
+	elif np.any(edge[:, 160:]):
+    	send_command('3')  # Turn right
+	else:
+    	send_command('2')  # Go straight
+
+cam = cv2.VideoCapture(0)
+
+while True:
+	check, frame = cam.read()
+	if not check:
+    	break
+
+	FollowlinePlease(frame)
+
+	image = cv2.resize(frame, (320, 240))
+	image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	img_normalized = cv2.normalize(image_gray, None, 0, 255, cv2.NORM_MINMAX)
+	img_threshold = cv2.threshold(img_normalized, 100, 255, cv2.THRESH_BINARY)[1]
+	edge = cv2.Canny(img_threshold, 100, 200)
+
+	# Display images
+	cv2.imshow("Original", image)
+	cv2.imshow("Norm", img_normalized)
+	cv2.imshow("Threshold", img_threshold)
+	cv2.imshow('Edge', edge)
+
+	key = cv2.waitKey(1)
+	if key == 27:
+    	break
+
+
+cam.release()
+cv2.destroyAllWindows()
