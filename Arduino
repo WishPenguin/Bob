@@ -1,0 +1,126 @@
+// Motor A
+int enA = 11;
+int in1 = 10;
+int in2 = 9;
+ 
+// Motor B
+int enB = 6;
+int in3 = 8;
+int in4 = 7;
+
+int Speed = 255;
+
+// Ultrasonic Sensor
+const int trigPin = 5;  // Trigger pin of the ultrasonic sensor
+const int echoPin = 4;  // Echo pin of the ultrasonic sensor
+const float speedOfSound = 0.034;  // Speed of sound in air (in centimeters per microsecond)
+
+void setup() {
+	Serial.begin(9600);
+	pinMode(enA, OUTPUT);
+	pinMode(enB, OUTPUT);
+	pinMode(in1, OUTPUT);
+	pinMode(in2, OUTPUT);
+	pinMode(in3, OUTPUT);
+	pinMode(in4, OUTPUT);
+	pinMode(trigPin, OUTPUT); // Set trigger pin as output
+	pinMode(echoPin, INPUT);  // Set echo pin as input
+}
+
+void straight() {
+	// Motor A
+	analogWrite(enA, Speed);
+	digitalWrite(in1, HIGH);
+	digitalWrite(in2, LOW);
+
+	// Motor B
+	analogWrite(enB, Speed);
+	digitalWrite(in3, HIGH);
+	digitalWrite(in4, LOW);
+}
+
+void left() {
+	// Turn off motors
+	digitalWrite(in1, LOW);
+	digitalWrite(in2, LOW);
+
+	// Motor B
+	analogWrite(enB, Speed);
+	digitalWrite(in3, HIGH);
+	digitalWrite(in4, LOW);
+}
+
+void right() {
+	// Turn off motors
+	digitalWrite(in3, LOW);
+	digitalWrite(in4, LOW);
+ 
+	// Motor A
+	analogWrite(enA, Speed);
+	digitalWrite(in1, HIGH);
+	digitalWrite(in2, LOW);
+}
+
+float getDistance() {
+	// Send a pulse to the trigger pin
+	digitalWrite(trigPin, LOW);
+	delayMicroseconds(2);
+	digitalWrite(trigPin, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(trigPin, LOW);
+
+	// Measure the duration of the pulse on the echo pin
+	long duration = pulseIn(echoPin, HIGH);
+
+	// Calculate distance in centimeters
+	float distance = (duration * speedOfSound) / 2;
+
+	return distance;
+}
+
+void loop() {
+	// Measure distance and stop motors if an obstacle is detected within 5 centimeters
+	digitalWrite(in1, HIGH);
+	digitalWrite(in2, LOW);
+	digitalWrite(in3, HIGH);
+	digitalWrite(in4, LOW);
+    
+	float distance = getDistance();
+    	 
+
+	if (distance < 5) {
+  	Serial.print("we are getting a sinal from the raspberry");
+    	digitalWrite(in1, HIGH);
+    	digitalWrite(in2, LOW);
+    	digitalWrite(in3, HIGH);
+    	digitalWrite(in4, LOW);
+   
+	} else {
+    	// Continue executing motor control commands from Raspberry Pi
+    	if (Serial.available()) {
+        	char command = Serial.read();
+        	Serial.print("we are getting a sinal from the raspberry");
+        	switch (command) {
+            	case '1':
+                	left();
+                	break;
+            	case '2':
+                	straight();
+                	break;
+            	case '3':
+                	right();
+                	break;
+            	case '4':
+                	// Stop the car
+                	digitalWrite(in1, LOW);
+                	digitalWrite(in2, LOW);
+                	digitalWrite(in3, LOW);
+                	digitalWrite(in4, LOW);
+                	break;
+            	default:
+                	break;
+        	}
+    	}
+	}
+}
+
